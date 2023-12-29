@@ -1,6 +1,6 @@
 module Main exposing (foo)
 
-import Overview
+import Overflow
 
 
 foo : String
