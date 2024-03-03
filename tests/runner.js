@@ -15,7 +15,7 @@ _.mixin({
     matchesPath: (expected, actual) => actual.replace("\\", "/") === expected
 });
 
-var elmCoverage = require.resolve( path.join("..", "bin", "elm-coverage"));
+var elmCoverage = require.resolve(path.join("..", "bin", "elm-coverage"));
 
 describe("Sanity test", () => {
     it("prints the usage instructions when running with `--help`", done => {
@@ -37,7 +37,7 @@ describe("Sanity test", () => {
     });
 });
 
-describe("E2E tests", function() {
+describe("E2E tests", function () {
     this.timeout(Infinity);
     it("Should run succesfully", done => {
         var process = spawn.spawn(elmCoverage, {
@@ -57,14 +57,14 @@ describe("E2E tests", function() {
     it("Should generate schema-validated JSON", () =>
         Promise.all([
             fs.readJSON(require.resolve("../docs/elm-coverage.json")),
-            generateJSON()
+            generateJSON("tests/data/simple")
         ]).spread((json, schema) => {
             expect(json).to.be.jsonSchema(schema);
         }));
 
     it("Should generate JSON that matches the pregenerated one, modulus runcount", () =>
         Promise.all([
-            generateJSON(),
+            generateJSON("tests/data/simple"),
             fs.readJSON(require.resolve("./data/simple/expected.json"))
         ]).spread((actual, expectedJSON) => {
             var expected = {};
@@ -91,15 +91,28 @@ describe("E2E tests", function() {
 
             expect(actual).to.matchPattern(expected);
         }));
+
+    it.only("Should generate a HTML report", async () => {
+        await generateHTML("tests/data/simple")
+
+        const actual = await fs.readFile(path.resolve(__dirname, "./data/simple/.coverage/coverage.html"))
+        const expected = fs.readFile(path.resolve(__dirname, "./data/simple/expected.html"))
+        expect(actual).to.equal(expected)
+    });
 });
 
-function generateJSON() {
+/**
+ * Run elm coverage to generate a Json report
+ * @param {string} pathToTest 
+ * @returns json report
+ */
+function generateJSON(pathToTest) {
     return new Promise((resolve, reject) => {
         var process = spawn.spawn(
             elmCoverage,
             ["generate", "--report", "json"],
             {
-                cwd: path.join("tests", "data", "simple")
+                cwd: pathToTest
             }
         );
 
@@ -109,8 +122,12 @@ function generateJSON() {
             output += data;
         });
 
+        process.stderr.on("data", data => {
+            console.error(data.toString());
+        });
+
         process.on("exit", exitCode => {
-            assert.equal(exitCode, 0, "Expected to finish succesfully");
+            assert.equal(exitCode, 0, "Expected to finish successfully");
             if (exitCode === 0) {
                 resolve(output);
             } else {
@@ -118,4 +135,40 @@ function generateJSON() {
             }
         });
     }).then(json => JSON.parse(json));
+}
+
+/**
+ * Run elm coverage to generate an HTML report
+ * @param {*} pathToTest
+ * @returns 
+ */
+function generateHTML(pathToTest) {
+    return new Promise((resolve, reject) => {
+        var process = spawn.spawn(
+            elmCoverage,
+            ["generate", "--report", "human"],
+            {
+                cwd: path.resolve(__dirname, pathToTest)
+            }
+        );
+
+        var output = "";
+
+        process.stdout.on("data", data => {
+            output += data;
+        });
+
+        process.stderr.on("data", data => {
+            console.error(data.toString());
+        });
+
+        process.on("exit", exitCode => {
+            assert.equal(exitCode, 0, "Expected to finish successfully");
+            if (exitCode === 0) {
+                resolve(output);
+            } else {
+                reject(new Error("Expected to finish successfully"));
+            }
+        });
+    });
 }
