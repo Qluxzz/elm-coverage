@@ -97,13 +97,13 @@ file =
     border-bottom-style: dashed;
 }
 
-.source .covered > .covered {
+.source .covered .covered {
     box-shadow: none;
     background-color: initial;
     border-bottom: none;
 }
 
-.source .uncovered > .uncovered {
+.source .uncovered .uncovered {
     box-shadow: none;
     border-bottom: none;
     background-color: initial;
