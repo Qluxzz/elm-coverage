@@ -242,9 +242,23 @@ contentToHtml content acc =
             partsToHtml parts acc
 
         Source.Content marker parts ->
-            List.foldl contentToHtml (pushStack marker acc) parts
-                |> popStack
+            processContent marker parts acc
 
+processContent : Source.MarkerInfo -> List Source.Content -> ToHtmlAcc msg -> ToHtmlAcc msg
+processContent marker parts acc =
+    let
+        processParts contentParts innerAcc =
+            case contentParts of
+                [] ->
+                    innerAcc
+
+                part :: rest ->
+                    let
+                        newAcc = contentToHtml part (pushStack marker innerAcc)
+                    in
+                    processParts rest (popStack newAcc)
+    in
+    processParts parts acc
 
 pushStack : Source.MarkerInfo -> ToHtmlAcc msg -> ToHtmlAcc msg
 pushStack marker acc =
@@ -275,22 +289,17 @@ partsToHtml parts acc =
             partsToHtml rest acc
 
         (Source.Part s) :: rest ->
-            tagAndAdd s acc
-                |> partsToHtml rest
+            partsToHtml rest (tagAndAdd s acc)
 
         Source.LineBreak :: rest ->
-            newLine acc
-                |> partsToHtml rest
+            partsToHtml rest (newLine acc)
 
         -- Empty part, useless markup to include, so skip it!
         (Source.Indented 0 "") :: rest ->
             partsToHtml rest acc
 
         (Source.Indented indent content) :: rest ->
-            acc
-                |> tagAndAdd content
-                |> add (whitespace indent)
-                |> partsToHtml rest
+            partsToHtml rest (add (whitespace indent) (tagAndAdd content acc))
 
 
 add : Html msg -> ToHtmlAcc msg -> ToHtmlAcc msg

@@ -98,9 +98,7 @@ markupHelper original offset markers acc =
             { acc | children = rest original :: acc.children }
 
         ( pos, markerList ) :: otherMarkers ->
-            { acc | children = readUntil pos original :: acc.children }
-                |> consumeMarkers markerList
-                |> markupHelper original pos otherMarkers
+                markupHelper original pos otherMarkers (consumeMarkers markerList { acc | children = readUntil pos original :: acc.children })
 
 
 consumeMarkers : List Marker -> Acc -> Acc
